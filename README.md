@@ -1,25 +1,25 @@
-# 🔐 Password Manager CLI
+# Password Manager CLI
 
 A simple and secure command-line password manager written in C++. It uses AES-256 encryption (via OpenSSL) to securely store login credentials for multiple websites, protected by a master password.
 
-## ✨ Features
+## Features
 
-- 🔐 AES-256-CBC file encryption using OpenSSL
-- 🧪 PBKDF2 password hashing with salt and iteration (600,000 iterations)
-- 💡 Simple interactive command-line interface
-- 🧾 Site and account organization structure
-- 🔑 Automatic strong password generator
-- 📁 Encrypted storage in `.bin` file per user
+-  AES-256-CBC file encryption using OpenSSL
+-  PBKDF2 password hashing with salt and iteration (600,000 iterations)
+-  Simple interactive command-line interface
+-  Site and account organization structure
+-  Automatic strong password generator
+-  Encrypted storage in `.bin` file per user
 
-## 🛠️ Requirements
+## Requirements
 
 - C++17 or later
 - OpenSSL library (e.g., `libssl-dev`)
 - `nlohmann/json` for JSON handling (included in `include/` folder)
 
-## 🚀 Build & Run
+## Build & Run
 
-### ✅ Dependencies
+### Dependencies
 
 Install OpenSSL (Ubuntu/Debian):
 
@@ -28,19 +28,19 @@ sudo apt update
 sudo apt install libssl-dev
 ```
 
-### 🔧 Compile
+### Compile
 
 ```bash
 g++ -std=c++17 -lssl -lcrypto -o pam main.cpp
 ```
 
-### ▶️ Run
+### Run
 
 ```bash
 ./pam <username> <master_password>
 ```
 
-## 🧭 Usage
+## Usage
 
 Once launched, the application will guide you through:
 
@@ -56,7 +56,7 @@ All data is encrypted and stored in a file named:
 <username>.bin
 ```
 
-## 🔐 Encryption Details
+## Encryption Details
 
 - **Algorithm**: AES-256-CBC
 - **Key Derivation**: PBKDF2 (HMAC-SHA256)
@@ -65,7 +65,7 @@ All data is encrypted and stored in a file named:
 - **IV**: 16 bytes
 - **Key Size**: 32 bytes
 
-## 🧪 Example
+## Example
 
 ```bash
 ./pam alice my_secure_password
@@ -74,11 +74,11 @@ All data is encrypted and stored in a file named:
 - If `alice.bin` exists: decrypt it using the password.
 - If not: a new encrypted file will be created upon exit.
 
-## 🛡️ Security Notes
+## Security Notes
 
 - Do not share your `*.bin` file or master password.
 - Passwords are only shown in plaintext on screen (not copied to clipboard).
-## 📂 Project Structure
+## Project Structure
 
 ```
 .
@@ -88,11 +88,11 @@ All data is encrypted and stored in a file named:
 ├── README.md
 ```
 
-## 📄 License
+## License
 
 MIT License – see [LICENSE](LICENSE) for details.
 
-## 🙌 Acknowledgments
+## Acknowledgments
 
 - [nlohmann/json](https://github.com/nlohmann/json)
 - [OpenSSL](https://www.openssl.org/)
