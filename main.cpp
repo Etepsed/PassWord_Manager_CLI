@@ -7,13 +7,24 @@
 #include "include/nlohmann/json.hpp"
 #include <random>
 #include <unistd.h>
-
-int PASSWORD_LEGTH = 30;
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <openssl/err.h>
 
 using namespace std;
 using json = nlohmann::json;
 namespace fs = filesystem;
 
+int PASSWORD_LEGTH = 30;
+string USERNAME;
+string PASSWORD;
+json USERDATA;
+
+constexpr int KEY_LENGTH = 32;
+constexpr int IV_LENGTH = 16;
+constexpr int SALT_LENGTH = 8;
+constexpr int ITERATIONS = 600000;
+constexpr int BUFFER_SIZE = 1024;
 
 // def functions
 void page_one(string UserName,const json& User_Data);
@@ -27,38 +38,167 @@ void page_del(string UserName, const json& User_Data);
 void account_del(string UserName, const json& User_Data);
 void rm_account(string UserName, const json& User_Data, string site);
 string gen_password();
+void handleErrors();
+void encrypt_file();
+int decrypt_file(); 
 //main function
 int main(int argc, char *argv[]){
-
-	string UserName, Password, FileName;
 
 	if(argc != 3){
 		cout << "use: " << argv[0] << "<UserName> <Password>";
 			return 0;
 	}
 
-	UserName = argv[1];
-	Password = argv[2];
-	FileName = UserName + ".json";
-	// if the user file don't exist , will create one.
-	if(!fs::exists(FileName)){
-		ofstream User_File(FileName);
-		json New_Data;
-		User_File << New_Data.dump(4);
-		User_File.close();
-	}	
-        
-	// load data user of file;
-	json User_Data;
-	ifstream File_User(FileName);
-	File_User >> User_Data;
-	File_User.close();
+	USERNAME = argv[1];
+	PASSWORD = argv[2];
+	if(fs::exists(USERNAME + ".bin")){
+		if(decrypt_file()){
+			system("clear");
+			cout << "invalid password\n";
+			return 1;
+		}
+		ifstream User_file(USERNAME+".json");
+		User_file >> USERDATA;
+		User_file.close();
+		fs::remove(USERNAME+".json");
+	}else{
 
-	// page 1 
-	page_home(UserName,User_Data);	
-	
+	}
+	page_home(USERNAME,USERDATA);
+	system("clear");
+	ofstream User_file(USERNAME+".json");
+	User_file << USERDATA.dump(4);
+	User_file.close();
+	encrypt_file();
+	fs::remove(USERNAME+".json");
 	return 0;
 }
+
+void handleErrors() {
+    ERR_print_errors_fp(stderr);
+    throw std::runtime_error("OpenSSL error");
+}
+
+void encrypt_file(){
+	ifstream in (USERNAME + ".json",ios::binary);
+	ofstream out (USERNAME + ".bin",ios::binary);
+
+	if(!in || !out){
+		cout << "error on open file" << endl;
+		return;
+	}
+	
+	unsigned char salt[SALT_LENGTH];
+	if(!RAND_bytes(salt, SALT_LENGTH)) handleErrors();
+
+	unsigned char key[KEY_LENGTH];
+	unsigned char iv[IV_LENGTH];
+
+	if(!PKCS5_PBKDF2_HMAC(PASSWORD.c_str(),PASSWORD.size(),salt,SALT_LENGTH,ITERATIONS, EVP_sha256(), KEY_LENGTH, key)){
+		handleErrors();
+	}
+
+	if(!RAND_bytes(iv, IV_LENGTH)) handleErrors();
+	
+	out.write(reinterpret_cast<char*>(salt),SALT_LENGTH);
+	out.write(reinterpret_cast<char*>(iv), IV_LENGTH);
+
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	if(!ctx) handleErrors();
+
+	if(1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(),nullptr,key,iv)){
+		handleErrors();
+	}
+
+	std::vector<unsigned char> inbuf(BUFFER_SIZE);
+	std::vector<unsigned char> outbuf(BUFFER_SIZE + EVP_MAX_BLOCK_LENGTH);
+	int inlen = 0, outlen = 0;
+
+	while (in.read(reinterpret_cast<char*>(inbuf.data()), inbuf.size()) || (inlen = in.gcount())) {
+		inlen = in.gcount();
+		if (1 != EVP_EncryptUpdate(ctx, outbuf.data(), &outlen, inbuf.data(), inlen)) {
+		    handleErrors();
+		}
+		out.write(reinterpret_cast<char*>(outbuf.data()), outlen);
+	}
+
+	if (1 != EVP_EncryptFinal_ex(ctx, outbuf.data(), &outlen)) handleErrors();
+
+	out.write(reinterpret_cast<char*>(outbuf.data()), outlen);
+
+	EVP_CIPHER_CTX_free(ctx);
+	
+	in.close();
+	out.close();
+
+	return;
+}
+
+int decrypt_file() {
+	ifstream in(USERNAME + ".bin", ios::binary);
+	ofstream out(USERNAME + ".json", ios::binary);
+
+	if (!in || !out) {
+		cerr << "error opening file for writing or reading\n";
+		return 1;
+	}
+
+	unsigned char salt[SALT_LENGTH];
+	unsigned char iv[IV_LENGTH];
+	unsigned char key[KEY_LENGTH];
+
+	in.read(reinterpret_cast<char*>(salt), SALT_LENGTH);
+	in.read(reinterpret_cast<char*>(iv), IV_LENGTH);
+
+	if (!in) {
+		cerr << "error on reading salt or IV of file\n";
+		return 1;
+	}
+
+	if (!PKCS5_PBKDF2_HMAC(PASSWORD.c_str(), PASSWORD.size(), salt, SALT_LENGTH, ITERATIONS, EVP_sha256(), KEY_LENGTH, key)) {
+		handleErrors();
+	}
+
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	if (!ctx) handleErrors();
+
+	if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key, iv)) {
+		handleErrors();
+	}
+
+	vector<unsigned char> inbuf(BUFFER_SIZE + EVP_MAX_BLOCK_LENGTH);
+	vector<unsigned char> outbuf(BUFFER_SIZE);
+	int inlen = 0, outlen = 0;
+
+	while (true) {
+		in.read(reinterpret_cast<char*>(inbuf.data()), BUFFER_SIZE);
+		inlen = in.gcount();
+		if (inlen <= 0) break;
+
+		if (1 != EVP_DecryptUpdate(ctx, outbuf.data(), &outlen, inbuf.data(), inlen)) {
+		    handleErrors();
+		}
+		out.write(reinterpret_cast<char*>(outbuf.data()), outlen);
+	}
+
+	if (1 != EVP_DecryptFinal_ex(ctx, outbuf.data(), &outlen)) {
+		cerr << "error completing decryption\n";
+		EVP_CIPHER_CTX_free(ctx);
+		fs::remove(USERNAME + ".json");
+		in.close();
+		out.close();
+		return 1;
+	}
+
+	out.write(reinterpret_cast<char*>(outbuf.data()), outlen);
+
+	EVP_CIPHER_CTX_free(ctx);
+	in.close();
+	out.close();
+	return 0;
+}
+
+
 
 void page_home(string UserName,const json& User_Data){
 	system("clear");
@@ -172,10 +312,7 @@ void rm_account(string UserName, const json& User_Data, string site){
 		json user_data = User_Data;
 
 		user_data[site].erase(accounts[choice -1]);
-
-		ofstream User_File(FileName);
-		User_File << user_data.dump(4);
-		User_File.close();
+		USERDATA = user_data;	
 		rm_account(UserName,user_data,site);
 	}else{
 		rm_account(UserName,User_Data,site);
@@ -230,10 +367,7 @@ void page_del(string UserName, const json& User_Data){
 		json user_data = User_Data;
 
 		user_data.erase(site);
-
-		ofstream User_File(FileName);
-		User_File << user_data.dump(4);
-		User_File.close();
+		USERDATA = user_data;
 		page_del(UserName,user_data);
 	}else{
 		page_del(UserName,User_Data);
@@ -311,9 +445,7 @@ void new_site(string UserName, const json& User_Data){
 	
 	if(choice == "1"){
 		user_data[site] = {};
-		ofstream User_File(FileName);
-		User_File << user_data.dump(4);
-		User_File.close();
+		USERDATA = user_data;
 		add_account(UserName,user_data,site);
 		return;
 
@@ -399,9 +531,7 @@ void add_account(string UserName, const json& User_Data,string site){
 	if(choice == "1"){
 		user_data[site][login]["login"] = login;
 		user_data[site][login]["password"] = password;
-		ofstream User_File(FileName);
-		User_File << user_data.dump(4);
-		User_File.close();
+		USERDATA = user_data;
 		page_home(UserName,user_data);
 		return;
 
