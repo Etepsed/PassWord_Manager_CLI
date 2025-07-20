@@ -39,8 +39,8 @@ void account_del(string UserName, const json& User_Data);
 void rm_account(string UserName, const json& User_Data, string site);
 string gen_password();
 void handleErrors();
-void encrypt_file();
-int decrypt_file(); 
+void encrypt_file(const string& in_json_str);
+int decrypt_file(string& out_json); 
 //main function
 int main(int argc, char *argv[]){
 
@@ -52,25 +52,20 @@ int main(int argc, char *argv[]){
 	USERNAME = argv[1];
 	PASSWORD = argv[2];
 	if(fs::exists(USERNAME + ".bin")){
-		if(decrypt_file()){
+		string decrypted_json;
+		if(decrypt_file(decrypted_json)){
 			system("clear");
 			cout << "invalid password\n";
 			return 1;
 		}
-		ifstream User_file(USERNAME+".json");
-		User_file >> USERDATA;
-		User_file.close();
-		fs::remove(USERNAME+".json");
+		USERDATA = json::parse(decrypted_json);
 	}else{
 
 	}
 	page_home(USERNAME,USERDATA);
 	system("clear");
-	ofstream User_file(USERNAME+".json");
-	User_file << USERDATA.dump(4);
-	User_file.close();
-	encrypt_file();
-	fs::remove(USERNAME+".json");
+	string json_str = USERDATA.dump(4);
+	encrypt_file(json_str);
 	return 0;
 }
 
@@ -79,8 +74,9 @@ void handleErrors() {
     throw std::runtime_error("OpenSSL error");
 }
 
-void encrypt_file(){
-	ifstream in (USERNAME + ".json",ios::binary);
+void encrypt_file(const string& in_json_str){
+	istringstream in(in_json_str);
+	//ifstream in (USERNAME + ".json",ios::binary);
 	ofstream out (USERNAME + ".bin",ios::binary);
 
 	if(!in || !out){
@@ -128,16 +124,16 @@ void encrypt_file(){
 
 	EVP_CIPHER_CTX_free(ctx);
 	
-	in.close();
+//	in.close();
 	out.close();
 
 	return;
 }
 
-int decrypt_file() {
+int decrypt_file(string& out_json) {
 	ifstream in(USERNAME + ".bin", ios::binary);
-	ofstream out(USERNAME + ".json", ios::binary);
-
+	//ofstream out(USERNAME + ".json", ios::binary);
+	stringstream out;
 	if (!in || !out) {
 		cerr << "error opening file for writing or reading\n";
 		return 1;
@@ -186,7 +182,7 @@ int decrypt_file() {
 		EVP_CIPHER_CTX_free(ctx);
 		fs::remove(USERNAME + ".json");
 		in.close();
-		out.close();
+	//	out.close();
 		return 1;
 	}
 
@@ -194,7 +190,8 @@ int decrypt_file() {
 
 	EVP_CIPHER_CTX_free(ctx);
 	in.close();
-	out.close();
+	//out.close();
+	out_json = out.str();
 	return 0;
 }
 
