@@ -1,31 +1,31 @@
-# Compilador
+# Compiler
 CXX = g++
 
-# Flags de compilação (inclui link com OpenSSL)
+# Compilation flags (includes link with OpenSSL)
 CXXFLAGS = -Wall -std=c++17
 
-# Flags de linkagem
+# Linking flags
 LDFLAGS = -lcrypto -lssl
 
-# Diretórios
+# Directories
 SRC_DIR = src
 BUILD_DIR = build
 
-# Arquivos-fonte
+# Source files
 SRC = $(SRC_DIR)/main.cpp  $(SRC_DIR)/globals.cpp   $(SRC_DIR)/pages.cpp  $(SRC_DIR)/encrypt.cpp  $(SRC_DIR)/uttils.cpp
 
-# Nome do executável
+# Executable name
 OUT = $(BUILD_DIR)/pam
 
-# Regra padrão
+# Default rule
 all: $(OUT)
 
-# Criação do executável
+# Creating the executable
 $(OUT): $(SRC)
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
-# Limpeza
+# clean
 clean:
 	rm -rf $(BUILD_DIR)
 
