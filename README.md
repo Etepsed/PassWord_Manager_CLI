@@ -31,7 +31,7 @@ sudo apt install libssl-dev
 ### Compile
 
 ```bash
-g++ -std=c++17 -lssl -lcrypto -o pam main.cpp
+make
 ```
 
 ### Run
@@ -78,15 +78,6 @@ All data is encrypted and stored in a file named:
 
 - Do not share your `*.bin` file or master password.
 - Passwords are only shown in plaintext on screen (not copied to clipboard).
-## Project Structure
-
-```
-.
-├── main.cpp      # Main source file
-├── include/
-│   └── nlohmann/json.hpp     # JSON library
-├── README.md
-```
 
 ## License
 
