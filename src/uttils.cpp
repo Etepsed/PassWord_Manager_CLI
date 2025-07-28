@@ -2,6 +2,14 @@
 #include "../include/globals.h"
 #include "../include/uttils.h"
 
+void clear_screen() {
+#ifdef _WIN32
+  system("cls");
+#else
+  system("clear");
+#endif
+}
+
 void close_program(int sinal) {
   cout << "program is closed!" << endl;
   system("clear");

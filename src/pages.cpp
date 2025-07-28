@@ -1,10 +1,11 @@
 #include "../include/encrypt.h"
 #include "../include/pages.h"
+#include "../include/uttils.h"
 
-void page_home(string UserName, const json &User_Data) {
-  system("clear");
+void page_home() {
+  clear_screen();
   int choice;
-  cout << "hello, " << UserName << endl;
+  cout << "hello, " << USERNAME << endl;
   cout << "password manager:" << endl;
   cout << " [" << 1 << "] " << "show passwords" << endl;
   cout << " [" << 2 << "] " << "add password" << endl;
@@ -16,16 +17,16 @@ void page_home(string UserName, const json &User_Data) {
   cin >> choice;
   switch (choice) {
   case 1:
-    page_one(UserName, User_Data);
+    page_showpassword_chose_site();
     break;
   case 2:
-    page_add_site(UserName, User_Data);
+    page_add_site(USERNAME, USERDATA);
     break;
   case 3:
-    account_del(UserName, User_Data);
+    account_del(USERNAME, USERDATA);
     break;
   case 4:
-    page_del(UserName, User_Data);
+    page_del(USERNAME, USERDATA);
     break;
   case 5:
     page_options();
@@ -33,14 +34,179 @@ void page_home(string UserName, const json &User_Data) {
   case 0:
     return;
   default:
-    page_home(UserName, User_Data);
+    page_home();
     break;
   }
   return;
 }
 
+void page_showpassword_chose_site() {
+  int choice = -1;
+  vector<string> sites;
+
+  while (true) {
+    sites.clear();
+    clear_screen();
+    cout << "Show password" << endl;
+    cout << "Choose a site:\n";
+
+    int i = 1;
+    for (const auto &[site, _] : USERDATA.items()) {
+      cout << " [" << i << "] " << site << endl;
+      sites.push_back(site);
+      i++;
+    }
+
+    cout << "\n[0] Back" << endl;
+    cout << "/>: ";
+
+    cin >> choice;
+
+    // Handle invalid input
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      continue;
+    }
+
+    // Check valid range
+    if (choice == 0) {
+      page_home();
+      return;
+    }
+
+    if (choice > 0 && choice <= static_cast<int>(sites.size())) {
+      clear_screen();
+      page_showpassword_chose_account(sites[choice - 1]);
+      return;
+    } else {
+      cout << "Invalid choice. Try again.\n";
+    }
+  }
+}
+
+void page_showpassword_chose_account(string site) {
+  int choice = -1;
+  vector<string> accounts;
+
+  while (true) {
+    accounts.clear();
+    clear_screen();
+    cout << "Site: (" << site << ")" << endl;
+    cout << "Accounts:\n";
+
+    int i = 1;
+    for (const auto &[account, _] : USERDATA[site].items()) {
+      cout << " [" << i << "] " << account << endl;
+      accounts.push_back(account);
+      i++;
+    }
+
+    cout << "\n[0] Back" << endl;
+    cout << "/>: ";
+
+    cin >> choice;
+
+    // Handle invalid input
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      continue;
+    }
+
+    // Check valid range
+    if (choice == 0) {
+      page_showpassword_chose_site();
+      return;
+    }
+
+    if (choice > 0 && choice <= static_cast<int>(accounts.size())) {
+      clear_screen();
+      // page three
+      page_showpassword(site, accounts[choice - 1]);
+      return;
+    } else {
+      cout << "Invalid choice. Try again.\n";
+    }
+  }
+}
+
+void page_showpassword(string site, string account) {
+
+  int choice = -1;
+  while (true) {
+    clear_screen();
+
+    cout << "site: (" << site << ") " << endl;
+    cout << "accout: (" << account << ") " << endl;
+    cout << "login:" << endl;
+    cout << " [ user/email ]: "
+         << USERDATA[site][account]["login"].get<string>() << endl;
+    cout << " [  password  ]: "
+         << USERDATA[site][account]["password"].get<string>() << endl;
+    cout << "\n[0] Back" << endl;
+    cout << "/>: ";
+
+    cin >> choice;
+
+    // Handle invalid input
+    if (cin.fail()) {
+      cin.clear();
+      cin.ignore(numeric_limits<streamsize>::max(), '\n');
+      continue;
+    }
+
+    // Check valid range
+    if (choice == 0) {
+      page_showpassword_chose_account(site);
+      return;
+    }
+  }
+}
+
+void page_add_site() {
+
+  clear_screen();
+
+  int i = 2;
+  vector<string> sites;
+  cout << "add password" << endl;
+  cout << "choose a site: " << endl;
+  cout << " [1] new site" << endl;
+  for (const auto &[site, _] : USERDATA.items()) {
+    cout << " [" << i << "] " << site << endl;
+    sites.push_back(site);
+    i++;
+  }
+
+  cout << endl << "[0] back" << endl;
+  int choice;
+  cout << "/>: ";
+  cin >> choice;
+
+  if (choice == 0) {
+    page_home();
+    return;
+  }
+
+  clear_screen();
+
+  if (choice == 1) {
+    new_site(USERNAME, USERDATA);
+    return;
+  }
+
+  if (choice < 1 || choice > i - 1) {
+    page_showpassword_chose_site();
+    return;
+  }
+  // page for add password
+  add_account(USERNAME, USERDATA, sites[choice - 2]);
+  return;
+}
+
 void account_del(string UserName, const json &User_Data) {
-  system("clear");
+  clear_screen();
   int choice;
   int i = 1;
   vector<string> sites;
@@ -58,7 +224,7 @@ void account_del(string UserName, const json &User_Data) {
   cin >> choice;
 
   if (choice == 0) {
-    page_home(UserName, User_Data);
+    page_home();
     return;
   }
 
@@ -72,7 +238,7 @@ void account_del(string UserName, const json &User_Data) {
 }
 
 void rm_account(string UserName, const json &User_Data, string site) {
-  system("clear");
+  clear_screen();
   int choice;
   int i = 1;
   string choc;
@@ -91,7 +257,7 @@ void rm_account(string UserName, const json &User_Data, string site) {
   cin >> choice;
 
   if (choice == 0) {
-    page_home(UserName, User_Data);
+    page_home();
     return;
   }
 
@@ -101,7 +267,7 @@ void rm_account(string UserName, const json &User_Data, string site) {
   }
 
   while (choc != "1" && choc != "2") {
-    system("clear");
+    clear_screen();
     cout << "[ " << accounts[choice - 1] << " ]" << endl;
     cout << "you want to delete this account?" << endl;
     cout << " [1] yes \n [2] not " << endl;
@@ -123,7 +289,7 @@ void rm_account(string UserName, const json &User_Data, string site) {
 }
 
 void page_options() {
-  system("clear");
+  clear_screen();
   cout << "options: " << endl;
   cout << " [" << 1 << "] " << "change Password" << endl;
   cout << " [" << 0 << "] " << "back" << endl;
@@ -136,7 +302,7 @@ void page_options() {
     change_password();
     break;
   case 0:
-    page_home(USERNAME, USERDATA);
+    page_home();
     break;
   }
 }
@@ -144,7 +310,7 @@ void page_options() {
 void page_del(string UserName, const json &User_Data) {
   string choc, site;
   int choice;
-  system("clear");
+  clear_screen();
 
   int i = 1;
   vector<string> sites;
@@ -161,7 +327,7 @@ void page_del(string UserName, const json &User_Data) {
   cin >> choice;
 
   if (choice == 0) {
-    page_home(UserName, User_Data);
+    page_home();
     return;
   }
 
@@ -172,7 +338,7 @@ void page_del(string UserName, const json &User_Data) {
   site = sites[choice - 1];
 
   while (choc != "1" && choc != "2") {
-    system("clear");
+    clear_screen();
     cout << "site: [ " << site << " ]" << endl;
     cout << "delete this site with all password storege?" << endl;
     cout << " [1] yes \n [2] not " << endl;
@@ -193,49 +359,8 @@ void page_del(string UserName, const json &User_Data) {
   }
 }
 
-void page_add_site(string UserName, const json &User_Data) {
-
-  system("clear");
-
-  int i = 2;
-  vector<string> sites;
-  cout << "add password" << endl;
-  cout << "choose a site: " << endl;
-  cout << " [1] new site" << endl;
-  for (const auto &[site, _] : User_Data.items()) {
-    cout << " [" << i << "] " << site << endl;
-    sites.push_back(site);
-    i++;
-  }
-
-  cout << endl << "[0] back" << endl;
-  int choice;
-  cout << "/>: ";
-  cin >> choice;
-
-  if (choice == 0) {
-    page_home(UserName, User_Data);
-    return;
-  }
-
-  system("clear");
-
-  if (choice == 1) {
-    new_site(UserName, User_Data);
-    return;
-  }
-
-  if (choice < 1 || choice > i - 1) {
-    page_one(UserName, User_Data);
-    return;
-  }
-  // page for add password
-  add_account(UserName, User_Data, sites[choice - 2]);
-  return;
-}
-
 void new_site(string UserName, const json &User_Data) {
-  system("clear");
+  clear_screen();
   string FileName = UserName + ".json";
   string site, choice;
   json user_data = User_Data;
@@ -253,7 +378,7 @@ void new_site(string UserName, const json &User_Data) {
     return;
   }
 
-  system("clear");
+  clear_screen();
   cout << "site: " << site << endl;
   cout << "you want to add this site? " << endl;
   cout << " [1] yes " << " [2] not " << endl;
@@ -272,7 +397,7 @@ void new_site(string UserName, const json &User_Data) {
 }
 
 void add_account(string UserName, const json &User_Data, string site) {
-  system("clear");
+  clear_screen();
   string FileName = UserName + ".json";
   string login, password, choice;
   json user_data = User_Data;
@@ -281,7 +406,7 @@ void add_account(string UserName, const json &User_Data, string site) {
   cout << "login: ";
   cin >> login;
   while (choice != "1" && choice != "2") {
-    system("clear");
+    clear_screen();
     cout << "site: " << site << endl;
     cout << " login: " << login << endl;
     cout << "use automatic password generation?" << endl;
@@ -291,7 +416,7 @@ void add_account(string UserName, const json &User_Data, string site) {
   }
   bool auto_gen = false;
   if (choice == "2") {
-    system("clear");
+    clear_screen();
     cout << "site: " << site << endl;
     cout << " login: " << login << endl;
     cout << "entrer your password:" << endl;
@@ -305,7 +430,7 @@ void add_account(string UserName, const json &User_Data, string site) {
   }
   choice = "";
   while (choice != "1" && choice != "2") {
-    system("clear");
+    clear_screen();
     cout << "site: " << site << endl;
     cout << " login: " << login << endl;
     cout << " password: " << password << endl;
@@ -332,7 +457,7 @@ void add_account(string UserName, const json &User_Data, string site) {
       cin >> password;
     }
     if (choice == "5") {
-      page_home(UserName, User_Data);
+      page_home();
       return;
     }
 
@@ -345,7 +470,7 @@ void add_account(string UserName, const json &User_Data, string site) {
     user_data[site][login]["login"] = login;
     user_data[site][login]["password"] = password;
     USERDATA = user_data;
-    page_home(UserName, user_data);
+    page_home();
     return;
 
   } else if (choice == "2") {
@@ -354,7 +479,7 @@ void add_account(string UserName, const json &User_Data, string site) {
 }
 
 void change_password() {
-  system("clear");
+  clear_screen();
   string ss, jj;
   cout << "current password: ";
   cin >> ss;
@@ -376,118 +501,5 @@ void change_password() {
     page_options();
   }
 
-  page_home(USERNAME, USERDATA);
-}
-
-void page_one(string UserName, const json &User_Data) {
-
-  system("clear");
-
-  int i = 1;
-  vector<string> sites;
-  cout << "show password" << endl;
-  cout << "chose a site: " << endl;
-  for (const auto &[site, _] : User_Data.items()) {
-    cout << " [" << i << "] " << site << endl;
-    sites.push_back(site);
-    i++;
-  }
-
-  cout << endl << "[0] back" << endl;
-  int choice;
-  cout << "/>: ";
-  cin >> choice;
-
-  if (choice == 0) {
-    page_home(UserName, User_Data);
-    return;
-  }
-
-  system("clear");
-
-  if (choice < 0 || choice > i - 1) {
-    page_one(UserName, User_Data);
-    return;
-  }
-
-  page_two(sites, choice, User_Data, UserName);
-  return;
-}
-
-void page_two(vector<string> sites, int choice, const json &User_Data,
-              string UserName) {
-  system("clear");
-  vector<string> accouts;
-  int i, Selected_site;
-
-  Selected_site = choice - 1;
-  cout << "site: (" << sites[choice - 1] << ")" << endl;
-  cout << "accouts: " << endl;
-  i = 1;
-  for (const auto &[accout, _] : User_Data[sites[choice - 1]].items()) {
-    cout << " [" << i << "] " << accout << endl;
-    accouts.push_back(accout);
-    i++;
-  }
-  cout << endl
-       << "[" << 0
-       << "] "
-          "back"
-       << endl;
-
-  cout << "/>: ";
-  cin >> choice;
-
-  if (choice == 0) {
-    page_one(UserName, User_Data);
-    return;
-  }
-
-  if (choice < 0 || choice > i - 1) {
-    page_two(sites, Selected_site + 1, User_Data, UserName);
-    return;
-  }
-
-  page_tree(accouts, sites, choice, User_Data[sites[Selected_site]], UserName,
-            User_Data, Selected_site);
-  return;
-}
-
-void page_tree(vector<string> accouts, vector<string> sites, int choice,
-               const json &User_Data, string UserName, const json &All_data,
-               int Selected_site) {
-
-  system("clear");
-  vector<string> data;
-  int j;
-  j = choice;
-
-  cout << "site: (" << sites[Selected_site] << ") " << endl;
-  cout << "accout: (" << accouts[choice - 1] << ") " << endl;
-  cout << "login:" << endl;
-  cout << " [ user/email ]: "
-       << User_Data[accouts[choice - 1]]["login"].get<string>() << endl;
-  cout << " [  password  ]: "
-       << User_Data[accouts[choice - 1]]["password"].get<string>() << endl;
-
-  cout << endl
-       << "[" << 0
-       << "] "
-          "back"
-       << endl;
-
-  cout << "/>: ";
-  cin >> choice;
-
-  if (choice == 0) {
-    page_two(sites, Selected_site + 1, All_data, UserName);
-    return;
-  }
-
-  if (choice < 0 || choice > 0) {
-    page_tree(accouts, sites, j, User_Data, UserName, All_data, Selected_site);
-    return;
-  }
-
-  return;
+  page_home();
 }

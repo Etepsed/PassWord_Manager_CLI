@@ -17,15 +17,15 @@ int main(int argc, char *argv[]) {
   if (fs::exists(USERNAME + ".bin")) {
     string decrypted_json;
     if (decrypt_file(decrypted_json)) {
-      system("clear");
+      clear_screen();
       cout << "invalid password\n";
       return 1;
     }
     USERDATA = json::parse(decrypted_json);
   } else {
   }
-  page_home(USERNAME, USERDATA);
-  system("clear");
+  page_home();
+  clear_screen();
   string json_str = USERDATA.dump(4);
   encrypt_file(json_str);
   return 0;

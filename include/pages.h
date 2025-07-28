@@ -6,18 +6,14 @@
 
 using namespace std;
 using json = nlohmann::json;
-namespace fs = filesystem;
 
-void page_home(string UserName, const json &User_Data);
+void page_home();
+void page_showpassword_chose_site();
+void page_showpassword_chose_account(string site);
+void page_showpassword(string site, string account);
 void change_password();
-void page_one(string UserName, const json &User_Data);
+void page_add_site();
 void page_options();
-void page_two(vector<string> sites, int choice, const json &User_Data,
-              string UserName);
-void page_tree(vector<string> accouts, vector<string> sites, int choice,
-               const json &User_Data, string UserName, const json &All_data,
-               int Selected_site);
-void page_add_site(string UserName, const json &User_Data);
 void new_site(string UserName, const json &User_Data);
 void add_account(string UserName, const json &User_Data, string site);
 void page_del(string UserName, const json &User_Data);
