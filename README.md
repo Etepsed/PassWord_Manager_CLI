@@ -28,13 +28,43 @@ sudo apt update
 sudo apt install libssl-dev
 ```
 
-### Compile
+### Compile for linux
 
 ```bash
 make
 ```
 
-### Run
+### Compile for Windows with MSYS2 (Static Executable)
+
+## Requirements
+
+- MSYS2 installed
+- MSYS2 updated
+
+```bash
+pacman -Syu
+```
+
+1. **Use the "MSYS2 UCRT64"** .
+
+2. **Install the required packages**:
+
+```bash
+pacman -S \
+  mingw-w64-ucrt-x86_64-gcc \
+  mingw-w64-ucrt-x86_64-openssl \
+  mingw-w64-ucrt-x86_64-zlib \
+  make
+```
+3. **Compile the project with make**:
+
+```bash
+make windows
+```
+--
+
+
+## Run
 
 ```bash
 ./pam <username> <master_password>
