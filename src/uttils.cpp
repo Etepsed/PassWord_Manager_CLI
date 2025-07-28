@@ -12,7 +12,7 @@ void clear_screen() {
 
 void close_program(int sinal) {
   cout << "program is closed!" << endl;
-  system("clear");
+  clear_screen();
   string json_str = USERDATA.dump(4);
   encrypt_file(json_str);
 
