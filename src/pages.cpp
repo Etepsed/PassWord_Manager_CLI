@@ -459,7 +459,7 @@ void page_delete_site() {
       return;
     }
 
-    if (choice > 0 && choice < static_cast<int>(sites.size())) {
+    if (choice > 0 && choice <= static_cast<int>(sites.size())) {
       active = false;
       site = sites[choice - 1];
     }
